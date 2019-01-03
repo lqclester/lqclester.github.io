@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-Hans">
+<head><meta name="generator" content="Hexo 3.8.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css">
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css">
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="mysql,语句优化,">
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="mysql在开发和设计中，相关的优化建议。主要从schema设计,索引的设计,查询语句编写，3方面。">
+<meta name="keywords" content="mysql,语句优化">
+<meta property="og:type" content="article">
+<meta property="og:title" content="sql优化">
+<meta property="og:url" content="lqclester.github.io/2017/10/31/sql优化/index.html">
+<meta property="og:site_name" content="lester.liang blog">
+<meta property="og:description" content="mysql在开发和设计中，相关的优化建议。主要从schema设计,索引的设计,查询语句编写，3方面。">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:updated_time" content="2019-01-03T02:50:25.399Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="sql优化">
+<meta name="twitter:description" content="mysql在开发和设计中，相关的优化建议。主要从schema设计,索引的设计,查询语句编写，3方面。">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="lqclester.github.io/2017/10/31/sql优化/">
+
+
+
+
+
+  <title>sql优化 | lester.liang blog</title>
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope="" itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope="" itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">lester.liang blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br>
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br>
+            
+            归档
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="lqclester.github.io/2017/10/31/sql优化/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="lester.liang">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="lester.liang blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">sql优化</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-10-31T16:19:53+08:00">
+                2017-10-31
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/code/" itemprop="url" rel="index">
+                    <span itemprop="name">code</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>mysql在开发和设计中，相关的优化建议。主要从schema设计,索引的设计,查询语句编写，3方面。<br><a id="more"></a></p>
+<h3 id="schema"><a href="#schema" class="headerlink" title="schema"></a>schema</h3><h4 id="1-主键建议用-自增主键：bigint-unsinged"><a href="#1-主键建议用-自增主键：bigint-unsinged" class="headerlink" title="1. 主键建议用 自增主键：bigint unsinged"></a>1. 主键建议用 自增主键：bigint unsinged</h4><ul>
+<li>不建议与业务数据处理有关联关系</li>
+<li>方便dba运维，比如归档，批量更新数据，可以根据id来做范围归档，更方便，如 id &gt;= $i and id &lt; $i+3000 and id &lt; $max and 其他条件，做到更精准的遍历数据</li>
+<li>按load到内存考虑，varchar 占用的内存空间，是它定义的字符长度的至少3倍</li>
+</ul>
+<h4 id="2-禁止default-NULL"><a href="#2-禁止default-NULL" class="headerlink" title="2. 禁止default NULL"></a>2. 禁止default NULL</h4><ul>
+<li>NULL值会有额外的空间来存储，并不是Null标志位只固定占用1个字节==，而是以8为单位，满8个null字段就多1个字节，不满8个也占用1个字节，高位用0补齐。对于相同数据的表，字段中有NULL值的表比NOT NULL的大，为了空间容量和性能，<a href="http://mysql.taobao.org/monthly/2016/08/07/" target="_blank" rel="noopener">参考</a></li>
+<li>NULL值是不相等的 ,对业务表述可能会有影响,不能=‘NULL’ 或者 = ‘null’，只能 is null，这个最终不利于开发的编写，随着代码迭代，人员的流动容易产生（实际也出现过），产生不必要的麻烦，如代码要写成 <code>col =‘NULL’ or col is null</code></li>
+<li><code>count(),max(),min()</code>是忽略NULL的，而<code>count(*)</code>是包含NULL值，那么<code>count(col)和count(*)</code>结果是不一样的。</li>
+<li>禁止default NULL，数字类型not null default 0，字符类型not null default ‘’，时间not null default ‘1970-01-01 00:00:00’或者 ‘0000-00-00 00:00:00’；</li>
+</ul>
+<h4 id="3-尽量用单表查询，避免多表JOIN，禁止多于3表join，join的字段数据类型必须绝对一致。"><a href="#3-尽量用单表查询，避免多表JOIN，禁止多于3表join，join的字段数据类型必须绝对一致。" class="headerlink" title="3. 尽量用单表查询，避免多表JOIN，禁止多于3表join，join的字段数据类型必须绝对一致。"></a>3. 尽量用单表查询，避免多表JOIN，禁止多于3表join，join的字段数据类型必须绝对一致。</h4><h3 id="建立索引原则"><a href="#建立索引原则" class="headerlink" title="建立索引原则"></a>建立索引原则</h3><h4 id="1-最左前缀匹配原则"><a href="#1-最左前缀匹配原则" class="headerlink" title="1. 最左前缀匹配原则"></a>1. 最左前缀匹配原则</h4><p> 最左前缀匹配原则，非常重要的原则，mysql会一直向右匹配直到遇到范围查询(&gt;、&lt;、between、like)就停止匹配，比如a = 1 and b = 2 and c &gt; 3 and d = 4 如果建立(a,b,c,d)顺序的索引，d是用不到索引的，如果建立(a,b,d,c)的索引则都可以用到，a,b,d的顺序可以任意调整。</p>
+<h4 id="2-和查询条件顺序无关，mysql查询器自动优化"><a href="#2-和查询条件顺序无关，mysql查询器自动优化" class="headerlink" title="2. 和查询条件顺序无关，mysql查询器自动优化"></a>2. 和查询条件顺序无关，mysql查询器自动优化</h4><p>=和in可以乱序，比如a = 1 and b = 2 and c = 3 建立(a,b,c)索引可以任意顺序，mysql的查询优化器会帮你优化成索引可以识别的形式</p>
+<h4 id="3-尽量选择区分度高的列作为索引"><a href="#3-尽量选择区分度高的列作为索引" class="headerlink" title="3. 尽量选择区分度高的列作为索引"></a>3. 尽量选择区分度高的列作为索引</h4><p> 尽量选择区分度高的列作为索引,区分度的公式是<code>count(distinct col)/count(*)</code>,表示字段不重复的比例，比例越大我们扫描的记录数越少，唯一键的区分度是1，而一些状态、性别字段可能在大数据面前区分度就是0，那可能有人会问，这个比例有什么经验值吗？使用场景不同，这个值也很难确定，一般需要join的字段我们都要求是0.1以上，即平均1条扫描10条记录</p>
+<h4 id="4-索引字段不参与运算"><a href="#4-索引字段不参与运算" class="headerlink" title="4. 索引字段不参与运算"></a>4. 索引字段不参与运算</h4><p>索引列不能参与计算，保持列“干净”，比如from_unixtime(create_time) = ’2014-05-29’就不能使用到索引，原因很简单，b+树中存的都是数据表中的字段值，但进行检索时，需要把所有元素都应用函数才能比较，显然成本太大。所以语句应该写成create_time = unix_timestamp(’2014-05-29’);</p>
+<h4 id="5-尽量拓展索引"><a href="#5-尽量拓展索引" class="headerlink" title="5. 尽量拓展索引"></a>5. 尽量拓展索引</h4><p>尽量的扩展索引，不要新建索引。比如表中已经有a的索引，现在要加(a,b)的索引，(a,b,c) 相当于 (a) 、(a,b) 、(a,b,c)。</p>
+<h4 id="explain"><a href="#explain" class="headerlink" title="explain"></a>explain</h4><table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>id</td>
+<td>本次 select 的标识符。在查询中每个 select都有一个顺序的数值。</td>
+</tr>
+<tr>
+<td>select_type</td>
+<td>select 的类型，SIMPLE，PRIMARY，UNION等</td>
+</tr>
+<tr>
+<td>table</td>
+<td>表</td>
+</tr>
+<tr>
+<td>type</td>
+<td>表连接类型 const&gt; eq_ref &gt; ref</td>
+</tr>
+<tr>
+<td>possible_keys</td>
+<td>可以走的索引  </td>
+</tr>
+<tr>
+<td>key</td>
+<td>索引</td>
+</tr>
+<tr>
+<td>key_len</td>
+<td>索引长度(大小，int-&gt;4,允许NULL，加1byte =5)</td>
+</tr>
+<tr>
+<td>ref</td>
+<td>ref 字段显示了哪些字段或者常量被用来和 key配合从表中查询记录出来。</td>
+</tr>
+<tr>
+<td>rows</td>
+<td>查询的总行数</td>
+</tr>
+<tr>
+<td>extra</td>
+<td>额外信息</td>
+</tr>
+</tbody>
+</table>
+<h5 id="select-type"><a href="#select-type" class="headerlink" title="select_type"></a>select_type</h5><p>select 的类型，可能会有以下几种：</p>
+<ol>
+<li>simple: 简单的 select （没有使用 union或子查询）</li>
+<li>primary: 最外层的 select。</li>
+<li>union: 第二层，在select 之后使用了 union。</li>
+<li>dependent union: union 语句中的第二个select，依赖于外部子查询</li>
+<li>subquery: 子查询中的第一个 select</li>
+<li>dependent subquery: 子查询中的第一个 subquery依赖于外部的子查询</li>
+<li>derived: 派生表 select（from子句中的子查询）<h5 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h5></li>
+<li><a href="https://dev.mysql.com/doc/refman/5.5/en/explain-output.html" target="_blank" rel="noopener">mysql explain官方文档解释</a></li>
+<li><a href="http://blog.jobbole.com/103058/" target="_blank" rel="noopener">explain字段解释</a></li>
+</ol>
+<h3 id="查询语句编写"><a href="#查询语句编写" class="headerlink" title="查询语句编写"></a>查询语句编写</h3><ol>
+<li>先运行看看是否真的很慢，注意设置SQL_NO_CACHE<br>例如：<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">select sql_no_cache id from table</span><br></pre></td></tr></table></figure>
+</li>
+</ol>
+<ol start="2">
+<li>where条件单表查，锁定最小返回记录表。<br>这句话的意思是把查询语句的where都应用到表中返回的记录数最小的表开始查起，单表每个字段分别查询，看哪个字段的区分度最高<br>2.explain查看执行计划，是否与1预期一致（从锁定记录较少的表开始查询）</li>
+<li>order by limit 使用<br>order by limit使用形式的sql语句让排序的表优先查</li>
+<li>了解业务方使用场景</li>
+<li>加索引时参照建索引的几大原则</li>
+<li>观察结果，不符合预期继续从0分析</li>
+</ol>
+<h3 id="其他相关"><a href="#其他相关" class="headerlink" title="其他相关"></a>其他相关</h3><h4 id="常用的类型大小"><a href="#常用的类型大小" class="headerlink" title="常用的类型大小"></a>常用的类型大小</h4><table>
+<thead>
+<tr>
+<th>类型</th>
+<th>大小</th>
+<th>范围（有符号）</th>
+<th>范围（无符号）</th>
+<th>用途</th>
+<th>宽度</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>TINYINT</td>
+<td>1 字节</td>
+<td>(-128, 127)</td>
+<td>(0, 255=2^8-1)</td>
+<td>小整数</td>
+<td>3</td>
+</tr>
+<tr>
+<td>SMALLINT</td>
+<td>2 字节</td>
+<td>(-32 768, 32 767)    (0, 65 535)</td>
+<td>大整数值</td>
+<td>6</td>
+</tr>
+<tr>
+<td>INT或INTEGER</td>
+<td>4 字节</td>
+<td>(-2 147 483 648, 2 147 483 647)</td>
+<td>(0, 4 294 967 295)</td>
+<td>大整数值</td>
+<td>10</td>
+</tr>
+<tr>
+<td>BIGINT</td>
+<td>8 字节</td>
+<td>(-9 233 372 036 854 775 808, 9 223 372 036 854 775 807)</td>
+<td>(0, 2^8-1)</td>
+<td>极大整数值</td>
+<td>20</td>
+</tr>
+<tr>
+<td>DOUBLE</td>
+<td>8 字节</td>
+<td>(1.797 E+308, 2.225 E-308) , 0, (2.225 E-308, 1.797E+308)</td>
+<td>0, (2.225E-308, 1.797E+308)</td>
+<td>双精度</td>
+<td>根据情况</td>
+</tr>
+</tbody>
+</table>
+<h3 id="资料"><a href="#资料" class="headerlink" title="资料"></a>资料</h3><p><a href="https://tech.meituan.com/mysql-index.html" target="_blank" rel="noopener">美团</a><br><a href="http://linuxtools-rst.readthedocs.io/zh_CN/latest/tool/strace.html" target="_blank" rel="noopener">strace 跟踪进程中的系统调用</a></p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/mysql/" rel="tag"># mysql</a>
+          
+            <a href="/tags/语句优化/" rel="tag"># 语句优化</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2017/09/28/api-url/" rel="next" title="中文api目录">
+                <i class="fa fa-chevron-left"></i> 中文api目录
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">lester.liang</p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">4</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                
+                  <span class="site-state-item-count">3</span>
+                  <span class="site-state-item-name">分类</span>
+                
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                
+                  <span class="site-state-item-count">6</span>
+                  <span class="site-state-item-name">标签</span>
+                
+              </div>
+            
+
+          </nav>
+
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#schema"><span class="nav-number">1.</span> <span class="nav-text">schema</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-主键建议用-自增主键：bigint-unsinged"><span class="nav-number">1.1.</span> <span class="nav-text">1. 主键建议用 自增主键：bigint unsinged</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-禁止default-NULL"><span class="nav-number">1.2.</span> <span class="nav-text">2. 禁止default NULL</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-尽量用单表查询，避免多表JOIN，禁止多于3表join，join的字段数据类型必须绝对一致。"><span class="nav-number">1.3.</span> <span class="nav-text">3. 尽量用单表查询，避免多表JOIN，禁止多于3表join，join的字段数据类型必须绝对一致。</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#建立索引原则"><span class="nav-number">2.</span> <span class="nav-text">建立索引原则</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-最左前缀匹配原则"><span class="nav-number">2.1.</span> <span class="nav-text">1. 最左前缀匹配原则</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-和查询条件顺序无关，mysql查询器自动优化"><span class="nav-number">2.2.</span> <span class="nav-text">2. 和查询条件顺序无关，mysql查询器自动优化</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-尽量选择区分度高的列作为索引"><span class="nav-number">2.3.</span> <span class="nav-text">3. 尽量选择区分度高的列作为索引</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#4-索引字段不参与运算"><span class="nav-number">2.4.</span> <span class="nav-text">4. 索引字段不参与运算</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#5-尽量拓展索引"><span class="nav-number">2.5.</span> <span class="nav-text">5. 尽量拓展索引</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#explain"><span class="nav-number">2.6.</span> <span class="nav-text">explain</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#select-type"><span class="nav-number">2.6.1.</span> <span class="nav-text">select_type</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#参考资料"><span class="nav-number">2.6.2.</span> <span class="nav-text">参考资料</span></a></li></ol></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#查询语句编写"><span class="nav-number">3.</span> <span class="nav-text">查询语句编写</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#其他相关"><span class="nav-number">4.</span> <span class="nav-text">其他相关</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#常用的类型大小"><span class="nav-number">4.1.</span> <span class="nav-text">常用的类型大小</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#资料"><span class="nav-number">5.</span> <span class="nav-text">资料</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">lester.liang</span>
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Muse</a> v5.1.4</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>
